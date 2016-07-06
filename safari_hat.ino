@@ -19,9 +19,9 @@ CRGB leds[NUM_LEDS];
 CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
-typedef void (*PatternList[])();
-PatternList patterns = { rainbow, confetti, sinelon };
-int patterns_size = 3;
+typedef void (*PatternList[])(int);
+PatternList patterns = { confetti };
+int patterns_size = 1;
 
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
@@ -37,21 +37,19 @@ void setup() {
 
 void loop()
 {
+  // reset brightness
+  FastLED.setBrightness( BRIGHTNESS );
+
+  // read battery voltage
   if (readVcc() <= 3000) {
     EVERY_N_MILLISECONDS( 33 ){ digitalWrite(BUZZER_PIN, !digitalRead(BUZZER_PIN)); }
   }
 
-  // Call the current pattern to update the LEDs
-  patterns[current_pattern_index]();
-
-  // Do something if mic sensor is over threshold
+  // Read the current analog signal from the mic
   micSensorValue = analogRead(MIC_PIN);
-  if (micSensorValue >= maxSensorValue) {
-    for( int j = 0; j < NUM_LEDS; j++) {
-      leds[j] = CRGB::Blue;
-      leds_2[j] = CRGB::Blue;
-    }
-  }
+
+  // Call the current pattern to update the LEDs
+  patterns[current_pattern_index](micSensorValue);
 
   FastLED.show(); // display this frame
   FastLED.delay(1000 / FRAMES_PER_SECOND);
@@ -66,34 +64,21 @@ void next_pattern()
   current_pattern_index = (current_pattern_index + 1) % patterns_size;
 }
 
-// FastLED's built-in rainbow generator
-void rainbow() 
+// random colored speckles that blink in and fade smoothly
+void confetti(int mic) 
 {
-  fill_rainbow( leds, NUM_LEDS, current_hue, 7);
-  fill_rainbow( leds_2, NUM_LEDS, current_hue, 7);
-}
+  if (mic >= maxSensorValue){
+    FastLED.setBrightness( BRIGHTNESS + 150 );
+  }
 
-void confetti() 
-{
-  // random colored speckles that blink in and fade smoothly
   fadeToBlackBy( leds, NUM_LEDS, 10);
   fadeToBlackBy( leds_2, NUM_LEDS, 10);
 
   int pos = random16(NUM_LEDS);
   int pos_2 = random16(NUM_LEDS);
+
   leds[pos] += CHSV( current_hue + random8(64), 200, 255);
   leds_2[pos_2] += CHSV( current_hue + random8(64), 200, 255);
-}
-
-void sinelon()
-{
-  // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  fadeToBlackBy( leds_2, NUM_LEDS, 20);
-  
-  int pos = beatsin16(13,0,NUM_LEDS);
-  leds[pos] += CHSV( current_hue, 255, 192);
-  leds_2[pos] += CHSV( current_hue, 255, 192);
 }
 
 // Shamelessly stolen from:

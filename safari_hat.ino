@@ -33,6 +33,8 @@ void setup() {
   FastLED.setBrightness( BRIGHTNESS );
 
   pinMode(BUZZER_PIN, OUTPUT);
+
+  Serial.begin(9600);
 }
 
 void loop()
@@ -106,5 +108,7 @@ long readVcc() {
   long result = (high<<8) | low;
 
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  String msg = "Voltage: ";
+  Serial.println(msg + result);
   return result; // Vcc in millivolts
 }

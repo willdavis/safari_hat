@@ -26,8 +26,8 @@ CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])(int);
-PatternList patterns = { confetti };
-int patterns_size = 1;
+PatternList patterns = { confetti, bpm, juggle };
+int patterns_size = 3;
 
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
@@ -58,7 +58,7 @@ void loop()
   FastLED.delay(1000 / FRAMES_PER_SECOND);
 
   EVERY_N_MILLISECONDS( 20 ) { current_hue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 10 ) { next_pattern(); }     // change patterns periodically
+  EVERY_N_SECONDS( 20 ) { next_pattern(); }     // change patterns periodically
   EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); }    // check if the battery voltage is below the limit
 
   // beep if a low power state is detected
@@ -97,6 +97,31 @@ void confetti(int mic)
   leds[pos] += CHSV( current_hue + random8(64), 200, 255);
   leds_2[pos_2] += CHSV( current_hue + random8(64), 200, 255);
 }
+
+// colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+void bpm(int mic)
+{
+  uint8_t BeatsPerMinute = 120;
+  CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
+    leds_2[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
+  }
+}
+
+// eight colored dots, weaving in and out of sync with each other
+void juggle(int mic) {
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  fadeToBlackBy( leds_2, NUM_LEDS, 20);
+  byte dothue = 0;
+  for( int i = 0; i < 8; i++) {
+    leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+    leds_2[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
+}
+
 
 int getBandgap(void) // Returns actual value of Vcc (x 100)
 {

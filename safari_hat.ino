@@ -19,6 +19,11 @@
 bool low_power_state = false;
 
 // microphone settings
+char im[128], data[128];
+char data_avgs[14];
+int value[3];
+int i = 0, audioVal;
+
 int micSensorValue = 0;
 int maxSensorValue = 450;
 
@@ -61,6 +66,7 @@ void loop()
   EVERY_N_MILLISECONDS( 20 ) { current_hue++; } // slowly cycle the "base color" through the rainbow
   EVERY_N_SECONDS( 20 ) { next_pattern(); }     // change patterns periodically
   EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); }    // check if the battery voltage is below the limit
+  EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }
 
   // beep if a low power state is detected
   if (low_power_state == true) {
@@ -83,12 +89,9 @@ void next_pattern()
 }
 
 // random colored speckles that blink in and fade smoothly
-void confetti(int mic) 
+void confetti(int mic)
 {
-  if (mic >= maxSensorValue){
-    FastLED.setBrightness( BRIGHTNESS + 150 );
-  }
-
+  if (value[2] >= 100){ FastLED.setBrightness( 200 ); }
   fadeToBlackBy( leds, NUM_LEDS, 10);
   fadeToBlackBy( leds_2, NUM_LEDS, 10);
 
@@ -123,6 +126,32 @@ void juggle(int mic) {
   }
 }
 
+// FFT magic
+void get_audio_levels()
+{
+  for (i = 0; i < 128; i++)
+  {
+    audioVal = analogRead(MIC_PIN);
+    data[i] = audioVal;
+    im[i] = 0;
+  };
+  fix_fft(data, im, 7, 0);
+  for (i = 0; i < 64; i++)
+  {
+    data[i] = sqrt(data[i] * data[i] + im[i] * im[i]);
+  };
+  for (i = 0; i < 14; i++)
+  {
+    data_avgs[i] = data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] + data[i * 4 + 3];
+    data_avgs[i] = map(data_avgs[i], 0, 30, 0, 9);
+  }
+  value[0] = 0.75 * data_avgs[0] + data_avgs[1] + 0.75 * data_avgs[2];
+  value[1] = data_avgs[3] + 2 * data_avgs[4] + 3 * data_avgs[5] + 3 * data_avgs[6] + 3 * data_avgs[7] + 2 * data_avgs[8] + data_avgs[9];
+  value[2] = data_avgs[8] + 2 * data_avgs[9] + 3 * data_avgs[10] + 3 * data_avgs[11] + 2 * data_avgs[12] + data_avgs[13];
+
+  String msg = "Audio levels: ";
+  Serial.println(msg + "low: " + value[0] + " mid: " + value[1] + " high: " + value[2]);
+}
 
 int getBandgap(void) // Returns actual value of Vcc (x 100)
 {

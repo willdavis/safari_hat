@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include "fix_fft.h"
 
 #define BUZZER_PIN  4
 #define LED_PIN     5

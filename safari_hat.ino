@@ -1,97 +1,53 @@
 #include <FastLED.h>
 #include "fix_fft.h"
 
+// IO pins
 #define BUZZER_PIN  4
 #define LED_PIN     5
 #define LED_PIN_2   6
 #define MIC_PIN     7 //A7
 
-#define COLOR_ORDER GRB
-#define CHIPSET     WS2811
-#define NUM_LEDS    40
-
-#define BRIGHTNESS  50
+// LED constants
+#define COLOR_ORDER       GRB
+#define CHIPSET           WS2811
+#define NUM_LEDS          40
+#define MIN_BRIGHTNESS    50
+#define MAX_BRIGHTNESS    200
 #define FRAMES_PER_SECOND 120
 
-#define WARNING_VOLTAGE 350 //cV
+// Battery constants
+#define WARNING_VOLTAGE   350 //cV
+
+// ----------------------
+// Global variables
+// ----------------------
 
 // Battery power states
 bool low_power_state = false;
 
-// microphone settings
+// microphone variables
 char im[128], data[128];
 char data_avgs[14];
 int value[3];
 int i = 0, audioVal;
 
-int micSensorValue = 0;
-int maxSensorValue = 450;
-
 CRGB leds[NUM_LEDS];
 CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
-typedef void (*PatternList[])(int);
+typedef void (*PatternList[])();
 PatternList patterns = { confetti, bpm, juggle };
-int patterns_size = 3;
-
+uint8_t patterns_size = 3;
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
 
-void setup() {
-  delay(3000); // sanity delay
-  FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.addLeds<CHIPSET, LED_PIN_2, COLOR_ORDER>(leds_2, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.setBrightness( BRIGHTNESS );
-
-  pinMode(BUZZER_PIN, OUTPUT);
-
-  Serial.begin(9600);
-}
-
-void loop()
-{
-  // reset brightness
-  FastLED.setBrightness( BRIGHTNESS );
-
-  // Read the current analog signal from the mic
-  micSensorValue = analogRead(MIC_PIN);
-
-  // Call the current pattern to update the LEDs
-  patterns[current_pattern_index](micSensorValue);
-
-  FastLED.show(); // display this frame
-  FastLED.delay(1000 / FRAMES_PER_SECOND);
-
-  EVERY_N_MILLISECONDS( 20 ) { current_hue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 20 ) { next_pattern(); }     // change patterns periodically
-  EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); }    // check if the battery voltage is below the limit
-  EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }
-
-  // beep if a low power state is detected
-  if (low_power_state == true) {
-    EVERY_N_MILLISECONDS( 50 ){ digitalWrite(BUZZER_PIN, !digitalRead(BUZZER_PIN)); }
-  }
-
-}
-
-void check_voltage(int voltage)
-{
-  // check for low power threshold
-  if (voltage <= WARNING_VOLTAGE && low_power_state == false ){ low_power_state = true; }
-  if (voltage > WARNING_VOLTAGE && low_power_state == true ){ low_power_state = false; digitalWrite(BUZZER_PIN, LOW); }
-}
-
-// add one to the current pattern number, and wrap around at the end
-void next_pattern()
-{
-  current_pattern_index = (current_pattern_index + 1) % patterns_size;
-}
+// ----------------------
+// LED patterns
+// ----------------------
 
 // random colored speckles that blink in and fade smoothly
-void confetti(int mic)
+void confetti()
 {
-  if (value[2] >= 100){ FastLED.setBrightness( 200 ); }
   fadeToBlackBy( leds, NUM_LEDS, 10);
   fadeToBlackBy( leds_2, NUM_LEDS, 10);
 
@@ -103,7 +59,7 @@ void confetti(int mic)
 }
 
 // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-void bpm(int mic)
+void bpm()
 {
   uint8_t BeatsPerMinute = 120;
   CRGBPalette16 palette = PartyColors_p;
@@ -115,7 +71,7 @@ void bpm(int mic)
 }
 
 // eight colored dots, weaving in and out of sync with each other
-void juggle(int mic) {
+void juggle() {
   fadeToBlackBy( leds, NUM_LEDS, 20);
   fadeToBlackBy( leds_2, NUM_LEDS, 20);
   byte dothue = 0;
@@ -124,6 +80,23 @@ void juggle(int mic) {
     leds_2[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
+}
+
+// ----------------------
+// Helper methods
+// ----------------------
+
+// check for low power
+void check_voltage(int voltage)
+{
+  if (voltage <= WARNING_VOLTAGE && low_power_state == false ){ low_power_state = true; }
+  if (voltage > WARNING_VOLTAGE && low_power_state == true ){ low_power_state = false; digitalWrite(BUZZER_PIN, LOW); }
+}
+
+// go to the next LED pattern number, and wrap around at the end
+void next_pattern()
+{
+  current_pattern_index = (current_pattern_index + 1) % patterns_size;
 }
 
 // FFT magic
@@ -176,4 +149,39 @@ int getBandgap(void) // Returns actual value of Vcc (x 100)
     // Scale the value
     int results = (((InternalReferenceVoltage * 1023L) / ADC) + 5L) / 10L; // calculates for straight line value
     return results;
+}
+
+
+// ----------------------
+// Main program
+// ----------------------
+
+void setup() {
+  delay(3000); // sanity delay
+  FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<CHIPSET, LED_PIN_2, COLOR_ORDER>(leds_2, NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.setBrightness( MIN_BRIGHTNESS );
+
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  // Call the current pattern and update the LEDs
+  patterns[current_pattern_index]();
+
+  FastLED.show(); // display this frame
+  FastLED.delay(1000 / FRAMES_PER_SECOND);
+
+  EVERY_N_MILLISECONDS( 20 ) { current_hue++; }         // slowly cycle the "base color" through the rainbow
+  EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }     // run the FFT library and update the audio bins
+  EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); } // check if the battery voltage is below the limit
+  EVERY_N_SECONDS( 20 ) { next_pattern(); }             // change patterns periodically
+
+  // beep if a low power state is detected
+  if (low_power_state == true) {
+    EVERY_N_MILLISECONDS( 100 ){ digitalWrite(BUZZER_PIN, !digitalRead(BUZZER_PIN)); }
+  }
 }

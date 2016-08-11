@@ -28,7 +28,7 @@ bool low_power_state = false;
 // microphone variables
 char im[128], data[128];
 char data_avgs[14];
-int value[3];
+int audio_bins[4];
 int i = 0, audioVal;
 
 CRGB leds[NUM_LEDS];
@@ -36,8 +36,9 @@ CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])();
-PatternList patterns = { confetti, bpm, juggle };
-uint8_t patterns_size = 3;
+PatternList patterns = { confetti, bpm, juggle, bpm };
+uint8_t patterns_size = 4;
+
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
 
@@ -61,12 +62,30 @@ void confetti()
 // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
 void bpm()
 {
-  uint8_t BeatsPerMinute = 120;
-  CRGBPalette16 palette = PartyColors_p;
-  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < NUM_LEDS; i++) { //9948
-    leds[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
-    leds_2[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
+
+  int low = map(audio_bins[0], -10, 100, 0, 200);
+  int low_mid = map(audio_bins[1], 0, 100, 0, 200);
+  int mid_high = map(audio_bins[2], 0, 100, 0, 200);
+  int high = map(audio_bins[3], 0, 100, 0, 200);
+
+  for(int i = 0; i < 8; i++){
+    leds[i*5] = CRGB::Black;
+    leds_2[i*5] = CRGB::Black;
+
+    leds[i*5+1] = CHSV(current_hue + low, 255, 255);
+    leds_2[i*5+1] = CHSV(current_hue + low, 255, 255);
+
+    leds[i*5+2] = CHSV(current_hue + low_mid, 255, 255);
+    leds_2[i*5+2] = CHSV(current_hue + low_mid, 255, 255);
+
+    leds[i*5+3] = CHSV(current_hue + mid_high, 255, 255);
+    leds_2[i*5+3] = CHSV(current_hue + mid_high, 255, 255);
+
+    leds[i*5+4] = CHSV(current_hue + high, 255, 255);
+    leds_2[i*5+4] = CHSV(current_hue + high, 255, 255);
+
+    leds[i*5+5] = CRGB::Black;
+    leds_2[i*5+5] = CRGB::Black;
   }
 }
 
@@ -118,12 +137,13 @@ void get_audio_levels()
     data_avgs[i] = data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] + data[i * 4 + 3];
     data_avgs[i] = map(data_avgs[i], 0, 30, 0, 9);
   }
-  value[0] = 0.75 * data_avgs[0] + data_avgs[1] + 0.75 * data_avgs[2];
-  value[1] = data_avgs[3] + 2 * data_avgs[4] + 3 * data_avgs[5] + 3 * data_avgs[6] + 3 * data_avgs[7] + 2 * data_avgs[8] + data_avgs[9];
-  value[2] = data_avgs[8] + 2 * data_avgs[9] + 3 * data_avgs[10] + 3 * data_avgs[11] + 2 * data_avgs[12] + data_avgs[13];
+  audio_bins[0] = data_avgs[0] + data_avgs[1] + data_avgs[2] + data_avgs[3];
+  audio_bins[1] = data_avgs[4] + data_avgs[5] + data_avgs[6] + data_avgs[7];
+  audio_bins[2] = data_avgs[8] + data_avgs[9] + data_avgs[8] + data_avgs[9];
+  audio_bins[3] = data_avgs[10] + data_avgs[11] + data_avgs[12] + data_avgs[13];
 
-  String msg = "Audio levels: ";
-  Serial.println(msg + "low: " + value[0] + " mid: " + value[1] + " high: " + value[2]);
+  //String msg = "Audio levels: ";
+  //Serial.println(msg + "low: " + audio_bins[0] + " low-mid: " + audio_bins[1] + " mid-high: " + audio_bins[2] + " high: " + audio_bins[3]);
 }
 
 int getBandgap(void) // Returns actual value of Vcc (x 100)
@@ -178,7 +198,7 @@ void loop()
   EVERY_N_MILLISECONDS( 20 ) { current_hue++; }         // slowly cycle the "base color" through the rainbow
   EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }     // run the FFT library and update the audio bins
   EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); } // check if the battery voltage is below the limit
-  EVERY_N_SECONDS( 20 ) { next_pattern(); }             // change patterns periodically
+  EVERY_N_SECONDS( 30 ) { next_pattern(); }             // change patterns periodically
 
   // beep if a low power state is detected
   if (low_power_state == true) {

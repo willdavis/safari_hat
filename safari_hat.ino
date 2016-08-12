@@ -72,17 +72,17 @@ void bpm()
     leds[i*5] = CRGB::Black;
     leds_2[i*5] = CRGB::Black;
 
-    leds[i*5+1] = CHSV(current_hue + low, 255, 255);
-    leds_2[i*5+1] = CHSV(current_hue + low, 255, 255);
+    leds[i*5+1] = CHSV(current_hue + low, 200, 255);
+    leds_2[i*5+1] = CHSV(current_hue + low, 200, 255);
 
-    leds[i*5+2] = CHSV(current_hue + low_mid, 255, 255);
-    leds_2[i*5+2] = CHSV(current_hue + low_mid, 255, 255);
+    leds[i*5+2] = CHSV(current_hue + low_mid, 200, 255);
+    leds_2[i*5+2] = CHSV(current_hue + low_mid, 200, 255);
 
-    leds[i*5+3] = CHSV(current_hue + mid_high, 255, 255);
-    leds_2[i*5+3] = CHSV(current_hue + mid_high, 255, 255);
+    leds[i*5+3] = CHSV(current_hue + mid_high, 200, 255);
+    leds_2[i*5+3] = CHSV(current_hue + mid_high, 200, 255);
 
-    leds[i*5+4] = CHSV(current_hue + high, 255, 255);
-    leds_2[i*5+4] = CHSV(current_hue + high, 255, 255);
+    leds[i*5+4] = CHSV(current_hue + high, 200, 255);
+    leds_2[i*5+4] = CHSV(current_hue + high, 200, 255);
 
     leds[i*5+5] = CRGB::Black;
     leds_2[i*5+5] = CRGB::Black;

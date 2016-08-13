@@ -36,8 +36,8 @@ CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])();
-PatternList patterns = { confetti, bpm, juggle, bpm };
-uint8_t patterns_size = 4;
+PatternList patterns = { spectrum, confetti, bpm, juggle, bpm };
+uint8_t patterns_size = 1;
 
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
@@ -59,14 +59,14 @@ void confetti()
   leds_2[pos_2] += CHSV( current_hue + random8(64), 200, 255);
 }
 
-// colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+// colored stripes pulsing at a different Beats-Per-Minute (BPM)
 void bpm()
 {
 
-  int low = map(audio_bins[0], -10, 100, 0, 200);
-  int low_mid = map(audio_bins[1], 0, 100, 0, 200);
-  int mid_high = map(audio_bins[2], 0, 100, 0, 200);
-  int high = map(audio_bins[3], 0, 100, 0, 200);
+  int low = map(audio_bins[0], 10, 100, 0, 200);
+  int low_mid = map(audio_bins[1], 10, 100, 0, 200);
+  int mid_high = map(audio_bins[2], 0, 80, 0, 200);
+  int high = map(audio_bins[3], 0, 80, 0, 200);
 
   for(int i = 0; i < 8; i++){
     leds[i*5] = CRGB::Black;
@@ -83,9 +83,43 @@ void bpm()
 
     leds[i*5+4] = CHSV(current_hue + high, 200, 255);
     leds_2[i*5+4] = CHSV(current_hue + high, 200, 255);
+  }
+}
 
-    leds[i*5+5] = CRGB::Black;
-    leds_2[i*5+5] = CRGB::Black;
+void spectrum()
+{
+  int audio_low = map(audio_bins[0], 10, 110, 0, 128);
+  int audio_low_mid = map(audio_bins[1], 0, 100, 0, 128);
+  int audio_mid_high = map(audio_bins[2], 0, 70, 0, 128);
+  int audio_high = map(audio_bins[3], 0, 60, 0, 128);
+
+  for(int i = 0; i < 8; i++){
+    leds[i*5] = CRGB::Black;
+    leds_2[i*5] = CRGB::Black;
+
+    if (audio_low > 48) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
+    else { leds[i*5+1] = CRGB::Black; }
+
+    if (audio_low > 64) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
+    else { leds_2[i*5+1] = CRGB::Black; }
+
+    if (audio_low_mid > 48) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
+    else { leds[i*5+2] = CRGB::Black; }
+
+    if (audio_low_mid > 64) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
+    else { leds_2[i*5+2] = CRGB::Black; }
+
+    if (audio_mid_high > 48) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
+    else { leds[i*5+3] = CRGB::Black; }
+
+    if (audio_mid_high > 64) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
+    else { leds_2[i*5+3] = CRGB::Black; }
+
+    if (audio_high > 48) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
+    else { leds[i*5+4] = CRGB::Black; }
+
+    if(audio_high > 64) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
+    else { leds_2[i*5+4] = CRGB::Black; }
   }
 }
 

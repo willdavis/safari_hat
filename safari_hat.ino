@@ -36,8 +36,8 @@ CRGB leds_2[NUM_LEDS];
 
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])();
-PatternList patterns = { spectrum, confetti, bpm, juggle, bpm };
-uint8_t patterns_size = 1;
+PatternList patterns = { spectrum, confetti, bpm, juggle, spectrum };
+uint8_t patterns_size = 5;
 
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
@@ -63,26 +63,26 @@ void confetti()
 void bpm()
 {
 
-  int low = map(audio_bins[0], 10, 100, 0, 200);
-  int low_mid = map(audio_bins[1], 10, 100, 0, 200);
-  int mid_high = map(audio_bins[2], 0, 80, 0, 200);
-  int high = map(audio_bins[3], 0, 80, 0, 200);
+  int audio_low = map(audio_bins[0], 0, 100, 0, 200);
+  int audio_low_mid = map(audio_bins[1], 0, 80, 0, 200);
+  int audio_mid_high = map(audio_bins[2], 0, 60, 0, 200);
+  int audio_high = map(audio_bins[3], 0, 50, 0, 200);
 
   for(int i = 0; i < 8; i++){
     leds[i*5] = CRGB::Black;
     leds_2[i*5] = CRGB::Black;
 
-    leds[i*5+1] = CHSV(current_hue + low, 200, 255);
-    leds_2[i*5+1] = CHSV(current_hue + low, 200, 255);
+    leds[i*5+1] = CHSV(current_hue + audio_low, 200, 255);
+    leds_2[i*5+1] = CHSV(current_hue + audio_low, 200, 255);
 
-    leds[i*5+2] = CHSV(current_hue + low_mid, 200, 255);
-    leds_2[i*5+2] = CHSV(current_hue + low_mid, 200, 255);
+    leds[i*5+2] = CHSV(current_hue + audio_low_mid, 200, 255);
+    leds_2[i*5+2] = CHSV(current_hue + audio_low_mid, 200, 255);
 
-    leds[i*5+3] = CHSV(current_hue + mid_high, 200, 255);
-    leds_2[i*5+3] = CHSV(current_hue + mid_high, 200, 255);
+    leds[i*5+3] = CHSV(current_hue + audio_mid_high, 200, 255);
+    leds_2[i*5+3] = CHSV(current_hue + audio_mid_high, 200, 255);
 
-    leds[i*5+4] = CHSV(current_hue + high, 200, 255);
-    leds_2[i*5+4] = CHSV(current_hue + high, 200, 255);
+    leds[i*5+4] = CHSV(current_hue + audio_high, 200, 255);
+    leds_2[i*5+4] = CHSV(current_hue + audio_high, 200, 255);
   }
 }
 
@@ -232,7 +232,7 @@ void loop()
   EVERY_N_MILLISECONDS( 20 ) { current_hue++; }         // slowly cycle the "base color" through the rainbow
   EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }     // run the FFT library and update the audio bins
   EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); } // check if the battery voltage is below the limit
-  EVERY_N_SECONDS( 30 ) { next_pattern(); }             // change patterns periodically
+  EVERY_N_SECONDS( 15 ) { next_pattern(); }             // change patterns periodically
 
   // beep if a low power state is detected
   if (low_power_state == true) {

@@ -88,37 +88,37 @@ void bpm()
 
 void spectrum()
 {
-  int audio_low = map(audio_bins[0], 10, 110, 0, 128);
-  int audio_low_mid = map(audio_bins[1], 0, 100, 0, 128);
-  int audio_mid_high = map(audio_bins[2], 0, 70, 0, 128);
-  int audio_high = map(audio_bins[3], 0, 60, 0, 128);
+  int audio_low = map(audio_bins[0], 0, 100, 0, 128);
+  int audio_low_mid = map(audio_bins[1], 0, 80, 0, 128);
+  int audio_mid_high = map(audio_bins[2], 0, 60, 0, 128);
+  int audio_high = map(audio_bins[3], 0, 50, 0, 128);
 
   for(int i = 0; i < 8; i++){
     leds[i*5] = CRGB::Black;
     leds_2[i*5] = CRGB::Black;
 
-    if (audio_low > 48) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
+    if (audio_low > 64) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+1] = CRGB::Black; }
 
-    if (audio_low > 64) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_low > 80) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+1] = CRGB::Black; }
 
-    if (audio_low_mid > 48) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
+    if (audio_low_mid > 64) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+2] = CRGB::Black; }
 
-    if (audio_low_mid > 64) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_low_mid > 80) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+2] = CRGB::Black; }
 
-    if (audio_mid_high > 48) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
+    if (audio_mid_high > 64) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+3] = CRGB::Black; }
 
-    if (audio_mid_high > 64) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_mid_high > 80) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+3] = CRGB::Black; }
 
-    if (audio_high > 48) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
+    if (audio_high > 64) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+4] = CRGB::Black; }
 
-    if(audio_high > 64) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
+    if(audio_high > 80) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+4] = CRGB::Black; }
   }
 }

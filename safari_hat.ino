@@ -37,7 +37,7 @@ CRGB leds_2[NUM_LEDS];
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])();
 PatternList patterns = { spectrum, confetti, bpm, juggle, spectrum };
-uint8_t patterns_size = 5;
+uint8_t patterns_size = 1;
 
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
@@ -63,10 +63,10 @@ void confetti()
 void bpm()
 {
 
-  int audio_low = map(audio_bins[0], 0, 100, 0, 200);
-  int audio_low_mid = map(audio_bins[1], 0, 80, 0, 200);
-  int audio_mid_high = map(audio_bins[2], 0, 60, 0, 200);
-  int audio_high = map(audio_bins[3], 0, 50, 0, 200);
+  int audio_low = map(audio_bins[0], 0, 100, 0, 128);
+  int audio_low_mid = map(audio_bins[1], 0, 80, 0, 128);
+  int audio_mid_high = map(audio_bins[2], 0, 60, 0, 128);
+  int audio_high = map(audio_bins[3], 0, 50, 0, 128);
 
   for(int i = 0; i < 8; i++){
     leds[i*5] = CRGB::Black;
@@ -88,10 +88,10 @@ void bpm()
 
 void spectrum()
 {
-  int audio_low = map(audio_bins[0], 0, 100, 0, 128);
-  int audio_low_mid = map(audio_bins[1], 0, 80, 0, 128);
-  int audio_mid_high = map(audio_bins[2], 0, 60, 0, 128);
-  int audio_high = map(audio_bins[3], 0, 50, 0, 128);
+  int audio_low = map(audio_bins[0], 10, 50, 0, 128);
+  int audio_low_mid = map(audio_bins[1], 0, 50, 0, 128);
+  int audio_mid_high = map(audio_bins[2], 0, 30, 0, 128);
+  int audio_high = map(audio_bins[3], 0, 30, 0, 128);
 
   for(int i = 0; i < 8; i++){
     leds[i*5] = CRGB::Black;
@@ -171,7 +171,7 @@ void get_audio_levels()
     data_avgs[i] = data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] + data[i * 4 + 3];
     data_avgs[i] = map(data_avgs[i], 0, 30, 0, 9);
   }
-  audio_bins[0] = data_avgs[0] + data_avgs[1] + data_avgs[2] + data_avgs[3];
+  audio_bins[0] = 0.75 * data_avgs[0] + 0.75 * data_avgs[1] + data_avgs[2] + data_avgs[3];
   audio_bins[1] = data_avgs[4] + data_avgs[5] + data_avgs[6] + data_avgs[7];
   audio_bins[2] = data_avgs[8] + data_avgs[9] + data_avgs[8] + data_avgs[9];
   audio_bins[3] = data_avgs[10] + data_avgs[11] + data_avgs[12] + data_avgs[13];

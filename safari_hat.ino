@@ -17,6 +17,7 @@
 
 // Battery constants
 #define WARNING_VOLTAGE   350 //cV
+#define CRITICAL_VOLTAGE   340 //cV
 
 // ----------------------
 // Global variables
@@ -24,6 +25,7 @@
 
 // Battery power states
 bool low_power_state = false;
+bool critical_power_state = false;
 
 // microphone variables
 char im[128], data[128];
@@ -45,6 +47,15 @@ uint8_t current_hue = 0;
 // ----------------------
 // LED patterns
 // ----------------------
+
+// Clear all LEDS (used in critical power state)
+void blank_pattern()
+{
+  for( int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = CRGB::Black;
+    leds_2[i] = CRGB::Black;
+  }
+}
 
 // random colored speckles that blink in and fade smoothly
 void confetti()
@@ -117,6 +128,7 @@ void check_voltage(int voltage)
 {
   if (voltage <= WARNING_VOLTAGE && low_power_state == false ){ low_power_state = true; }
   if (voltage > WARNING_VOLTAGE && low_power_state == true ){ low_power_state = false; digitalWrite(BUZZER_PIN, LOW); }
+  if (voltage <= CRITICAL_VOLTAGE ){ critical_power_state = true; }
 }
 
 // go to the next LED pattern number, and wrap around at the end
@@ -196,8 +208,13 @@ void setup() {
 
 void loop()
 {
-  // Call the current pattern and update the LEDs
-  patterns[current_pattern_index]();
+  if (critical_power_state == true) {
+    // Display no colors
+    blank_pattern();
+  } else {
+    // Call the current pattern and update the LEDs
+    patterns[current_pattern_index]();
+  }
 
   FastLED.show(); // display this frame
   FastLED.delay(1000 / FRAMES_PER_SECOND);

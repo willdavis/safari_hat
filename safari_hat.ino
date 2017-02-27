@@ -36,11 +36,6 @@ int i = 0, audioVal;
 CRGB leds[NUM_LEDS];
 CRGB leds_2[NUM_LEDS];
 
-// List of patterns to cycle through.  Each is defined as a separate function.
-typedef void (*PatternList[])();
-PatternList patterns = { spectrum, spectrum, confetti, spectrum, juggle, spectrum };
-uint8_t patterns_size = 6;
-
 uint8_t current_pattern_index = 0;
 uint8_t current_hue = 0;
 
@@ -118,6 +113,11 @@ void juggle() {
     dothue += 32;
   }
 }
+
+// List of patterns to cycle through.  Each is defined as a separate function.
+typedef void (*PatternList[])();
+PatternList patterns = { spectrum, spectrum, confetti, spectrum, juggle, spectrum };
+uint8_t patterns_size = 6;
 
 // ----------------------
 // Helper methods

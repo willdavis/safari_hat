@@ -27,17 +27,20 @@
 bool low_power_state = false;
 bool critical_power_state = false;
 
-// microphone variables
+// Microphone variables
 char im[128], data[128];
 char data_avgs[14];
-int audio_bins[4];
-int i = 0, audioVal;
+int audio_bins[5];
+int audioVal;
 
+// LED variables for FastLED library
 CRGB leds[NUM_LEDS];
 CRGB leds_2[NUM_LEDS];
 
-uint8_t current_pattern_index = 0;
+// Counters
+uint8_t current_pattern = 0;
 uint8_t current_hue = 0;
+int i = 0;
 
 // ----------------------
 // LED patterns
@@ -53,6 +56,7 @@ void blank_pattern()
 }
 
 // random colored speckles that blink in and fade smoothly
+// example pattern from: {FastLED example URL}
 void confetti()
 {
   fadeToBlackBy( leds, NUM_LEDS, 10);
@@ -65,39 +69,43 @@ void confetti()
   leds_2[pos_2] += CHSV( current_hue + random8(64), 200, 255);
 }
 
+// sound reactive pattern that displays 5 audio bins.
+// low, low-mid, mid, mid-high, and high frequencies
+// louder frequency ranges will display on the highest LED row
+// quieter frequency ranges will display on the lowest LED row, or not at all.
+// segment the LEDs into 8 groups with 5 LEDs per group.
+// update each group with the same audio data, and render each LED accordingly
 void spectrum()
 {
-  int audio_low = map(audio_bins[0], 10, 50, 0, 128);
-  int audio_low_mid = map(audio_bins[1], 0, 50, 0, 128);
-  int audio_mid_high = map(audio_bins[2], 0, 30, 0, 128);
-  int audio_high = map(audio_bins[3], 0, 30, 0, 128);
-
   for(int i = 0; i < 8; i++){
-    leds[i*5] = CRGB::Black;
-    leds_2[i*5] = CRGB::Black;
+    // low
+    if (audio_bins[0] > 64) { leds[i*5] = CHSV(current_hue, 200, 255); }
+    else { leds[i*5] = CRGB::Black; }
+    if (audio_bins[0] > 80) { leds_2[i*5] = CHSV(current_hue + 128, 200, 255); }
+    else { leds_2[i*5] = CRGB::Black; }
 
-    if (audio_low > 64) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
+    // low-mid
+    if (audio_bins[1] > 64) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+1] = CRGB::Black; }
-
-    if (audio_low > 80) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[1] > 80) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+1] = CRGB::Black; }
 
-    if (audio_low_mid > 64) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
+    // mid
+    if (audio_bins[2] > 64) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+2] = CRGB::Black; }
-
-    if (audio_low_mid > 80) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[2] > 80) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+2] = CRGB::Black; }
 
-    if (audio_mid_high > 64) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
+    // mid-high
+    if (audio_bins[3] > 64) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+3] = CRGB::Black; }
-
-    if (audio_mid_high > 80) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[3] > 80) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+3] = CRGB::Black; }
 
-    if (audio_high > 64) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
+    // high
+    if (audio_bins[4] > 64) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+4] = CRGB::Black; }
-
-    if(audio_high > 80) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
+    if(audio_bins[4] > 80) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+4] = CRGB::Black; }
   }
 }
@@ -134,19 +142,25 @@ void check_voltage(int voltage)
 // go to the next LED pattern number, and wrap around at the end
 void next_pattern()
 {
-  current_pattern_index = (current_pattern_index + 1) % patterns_size;
+  current_pattern = (current_pattern + 1) % patterns_size;
 }
 
 // FFT magic
 void get_audio_levels()
 {
+  // sample audio data 128 times
   for (i = 0; i < 128; i++)
   {
     audioVal = analogRead(MIC_PIN);
     data[i] = audioVal;
     im[i] = 0;
   };
+
+  // cast spell of FFT magic!
   fix_fft(data, im, 7, 0);
+
+  // process sound data doing some wizardry from: {URL}
+  // DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOUR DOING!
   for (i = 0; i < 64; i++)
   {
     data[i] = sqrt(data[i] * data[i] + im[i] * im[i]);
@@ -156,13 +170,22 @@ void get_audio_levels()
     data_avgs[i] = data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] + data[i * 4 + 3];
     data_avgs[i] = map(data_avgs[i], 0, 30, 0, 9);
   }
-  audio_bins[0] = 0.75 * data_avgs[0] + 0.75 * data_avgs[1] + data_avgs[2] + data_avgs[3];
-  audio_bins[1] = data_avgs[4] + data_avgs[5] + data_avgs[6] + data_avgs[7];
-  audio_bins[2] = data_avgs[8] + data_avgs[9] + data_avgs[8] + data_avgs[9];
-  audio_bins[3] = data_avgs[10] + data_avgs[11] + data_avgs[12] + data_avgs[13];
 
-  //String msg = "Audio levels: ";
-  //Serial.println(msg + "low: " + audio_bins[0] + " low-mid: " + audio_bins[1] + " mid-high: " + audio_bins[2] + " high: " + audio_bins[3]);
+  // set the value for each audio bin
+  audio_bins[0] = data_avgs[0] + data_avgs[1] + data_avgs[3];
+  audio_bins[1] = data_avgs[4] + data_avgs[5] + data_avgs[2];
+  audio_bins[2] = data_avgs[6] + data_avgs[7] + data_avgs[8] + data_avgs[9];
+  audio_bins[3] = data_avgs[8] + data_avgs[9] + data_avgs[10];
+  audio_bins[4] = data_avgs[11] + data_avgs[12] + data_avgs[13];
+
+  // sanitize the audio data
+  //audio_bins[0] = map(audio_bins[0], 0, 50, 0, 128);
+  //audio_bins[1] = map(audio_bins[1], 0, 50, 0, 128);
+  //audio_bins[2] = map(audio_bins[2], 0, 50, 0, 128);
+  //audio_bins[3] = map(audio_bins[3], 0, 30, 0, 128);
+  //audio_bins[4] = map(audio_bins[4], 0, 30, 0, 128);
+
+  Serial.println("low: " + String(audio_bins[0]) + " low-mid: " + String(audio_bins[1]) + " mid: " + String(audio_bins[2]) + " mid-high: " + String(audio_bins[3]) + " high: " + String(audio_bins[4]));
 }
 
 int getBandgap(void) // Returns actual value of Vcc (x 100)
@@ -208,20 +231,22 @@ void setup() {
 
 void loop()
 {
+  // check if the battery voltage is critically low, if not,
+  // call the current pattern and update the LEDs.
   if (critical_power_state == true) {
-    // Display no colors
     blank_pattern();
   } else {
-    // Call the current pattern and update the LEDs
-    patterns[current_pattern_index]();
+    patterns[current_pattern]();
   }
 
-  FastLED.show(); // display this frame
+  // display this frame and wait for the next one.
+  FastLED.show();
   FastLED.delay(1000 / FRAMES_PER_SECOND);
 
+  // background timers
   EVERY_N_MILLISECONDS( 20 ) { current_hue++; }         // slowly cycle the "base color" through the rainbow
   EVERY_N_MILLISECONDS( 50 ){ get_audio_levels(); }     // run the FFT library and update the audio bins
-  EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); } // check if the battery voltage is below the limit
+  EVERY_N_SECONDS( 1 ) { check_voltage(getBandgap()); } // check if the battery voltage is low
   EVERY_N_SECONDS( 30 ) { next_pattern(); }             // change patterns periodically
 
   // beep if a low power state is detected

@@ -11,8 +11,8 @@
 #define COLOR_ORDER       GRB
 #define CHIPSET           WS2811
 #define NUM_LEDS          40
-#define MIN_BRIGHTNESS    50
-#define MAX_BRIGHTNESS    200
+#define MIN_BRIGHTNESS    64
+#define MAX_BRIGHTNESS    192
 #define FRAMES_PER_SECOND 120
 
 // Battery constants
@@ -31,7 +31,7 @@ bool critical_power_state = false;
 char im[128], data[128];
 char data_avgs[14];
 int audio_bins[5];
-int audioVal;
+int audioVal, audio_max, audio_min;
 
 // LED variables for FastLED library
 CRGB leds[NUM_LEDS];
@@ -77,35 +77,42 @@ void confetti()
 // update each group with the same audio data, and render each LED accordingly
 void spectrum()
 {
+  // sanitize the audio data
+  audio_bins[0] = map(audio_bins[0], audio_min, audio_max, 0, 100);
+  audio_bins[1] = map(audio_bins[1], audio_min, audio_max, 0, 100);
+  audio_bins[2] = map(audio_bins[2], audio_min, audio_max, 0, 100);
+  audio_bins[3] = map(audio_bins[3], audio_min, audio_max, 0, 100);
+  audio_bins[4] = map(audio_bins[4], audio_min, audio_max, 0, 100);
+
   for(int i = 0; i < 8; i++){
     // low
-    if (audio_bins[0] > 64) { leds[i*5] = CHSV(current_hue, 200, 255); }
+    if (audio_bins[0] > 60) { leds[i*5] = CHSV(current_hue, 200, 255); }
     else { leds[i*5] = CRGB::Black; }
-    if (audio_bins[0] > 80) { leds_2[i*5] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[0] > 90) { leds_2[i*5] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5] = CRGB::Black; }
 
     // low-mid
-    if (audio_bins[1] > 64) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
+    if (audio_bins[1] > 60) { leds[i*5+1] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+1] = CRGB::Black; }
-    if (audio_bins[1] > 80) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[1] > 90) { leds_2[i*5+1] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+1] = CRGB::Black; }
 
     // mid
-    if (audio_bins[2] > 64) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
+    if (audio_bins[2] > 60) { leds[i*5+2] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+2] = CRGB::Black; }
-    if (audio_bins[2] > 80) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[2] > 90) { leds_2[i*5+2] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+2] = CRGB::Black; }
 
     // mid-high
-    if (audio_bins[3] > 64) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
+    if (audio_bins[3] > 60) { leds[i*5+3] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+3] = CRGB::Black; }
-    if (audio_bins[3] > 80) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[3] > 90) { leds_2[i*5+3] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+3] = CRGB::Black; }
 
     // high
-    if (audio_bins[4] > 64) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
+    if (audio_bins[4] > 60) { leds[i*5+4] = CHSV(current_hue, 200, 255); }
     else { leds[i*5+4] = CRGB::Black; }
-    if(audio_bins[4] > 80) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
+    if (audio_bins[4] > 90) { leds_2[i*5+4] = CHSV(current_hue + 128, 200, 255); }
     else { leds_2[i*5+4] = CRGB::Black; }
   }
 }
@@ -122,10 +129,21 @@ void juggle() {
   }
 }
 
+void pulse()
+{
+  uint8_t beat = beatsin8(120, 64, 255);
+  CRGBPalette16 palette = PartyColors_p;
+
+  for(int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
+    leds_2[i] = ColorFromPalette(palette, current_hue+(i*2), beat-current_hue+(i*10));
+  }
+}
+
 // List of patterns to cycle through.  Each is defined as a separate function.
 typedef void (*PatternList[])();
-PatternList patterns = { spectrum, spectrum, confetti, spectrum, juggle, spectrum };
-uint8_t patterns_size = 6;
+PatternList patterns = { spectrum, spectrum, confetti, pulse, juggle };
+uint8_t patterns_size = 5;
 
 // ----------------------
 // Helper methods
@@ -171,21 +189,29 @@ void get_audio_levels()
     data_avgs[i] = map(data_avgs[i], 0, 30, 0, 9);
   }
 
-  // set the value for each audio bin
-  audio_bins[0] = data_avgs[0] + data_avgs[1] + data_avgs[3];
-  audio_bins[1] = data_avgs[4] + data_avgs[5] + data_avgs[2];
-  audio_bins[2] = data_avgs[6] + data_avgs[7] + data_avgs[8] + data_avgs[9];
+  // sum the data_avgs into each each audio bin
+  // low, low-mid, mid, mid-high, and high frequencies
+  audio_bins[0] = (0.50 * data_avgs[0]) + (data_avgs[1] * 0.75);
+  audio_bins[1] = data_avgs[2] + data_avgs[3] + data_avgs[4];
+  audio_bins[2] = data_avgs[5] + data_avgs[6] + data_avgs[7];
   audio_bins[3] = data_avgs[8] + data_avgs[9] + data_avgs[10];
   audio_bins[4] = data_avgs[11] + data_avgs[12] + data_avgs[13];
 
-  // sanitize the audio data
-  //audio_bins[0] = map(audio_bins[0], 0, 50, 0, 128);
-  //audio_bins[1] = map(audio_bins[1], 0, 50, 0, 128);
-  //audio_bins[2] = map(audio_bins[2], 0, 50, 0, 128);
-  //audio_bins[3] = map(audio_bins[3], 0, 30, 0, 128);
-  //audio_bins[4] = map(audio_bins[4], 0, 30, 0, 128);
+  // reset audio metadata variables
+  audio_max = 0;
+  audio_min = 1000;
 
-  Serial.println("low: " + String(audio_bins[0]) + " low-mid: " + String(audio_bins[1]) + " mid: " + String(audio_bins[2]) + " mid-high: " + String(audio_bins[3]) + " high: " + String(audio_bins[4]));
+  // calculates audio metadata for this frame
+  for (i = 0; i < 5; i++)
+  {
+    if(audio_min > audio_bins[i]){ audio_min = audio_bins[i]; }
+    if(audio_max < audio_bins[i]){ audio_max = audio_bins[i]; }
+  }
+
+  //Serial.println("max:" + String(audio_max) + " min:" + String(audio_min) +
+  //  " low:" + String(audio_bins[0]) + " low-mid:" + String(audio_bins[1]) +
+  //  " mid:" + String(audio_bins[2]) + " mid-high:" + String(audio_bins[3]) +
+  //  " high:" + String(audio_bins[4]));
 }
 
 int getBandgap(void) // Returns actual value of Vcc (x 100)
